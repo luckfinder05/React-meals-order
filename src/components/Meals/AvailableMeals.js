@@ -8,7 +8,9 @@ import CartContext from '../../store/cart-context';
 const AvailableMeals = () => {
   const [loadedMeals, setMeals] = useState([]);
   const { error, isLoading, sendRequest: fetchMeals } = useHttp();
-  const { sendRequest: fetchCart } = useHttp();
+  const [isCartChanged, setIsCartChanged] = useState(false);
+  const { isLoading: isCartLoading, sendRequest: fetchCart } = useHttp();
+  const { sendRequest: cartSave } = useHttp();
   const cartCtx = useContext(CartContext);
 
   useEffect(() => {
@@ -25,18 +27,43 @@ const AvailableMeals = () => {
     }, transformMeals);
   }, [fetchMeals]);
 
-
+  //loading Cart state from DB
   useEffect(() => {
     const transformCartItems = cartObj => {
       const cartId = 'cart';
-      const loadedMeals = cartObj[cartId];
-      cartCtx.addList(loadedMeals);
+      const loadedItems = cartObj[cartId];
+      cartCtx.addList(loadedItems);
+      // console.log('Cart loaded from server DB')
     };
     fetchCart({
       url: 'https://react-http-4bdc6-default-rtdb.firebaseio.com/cart.json',
     }, transformCartItems);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [])
+
+  //saving Cart state to DB
+  useEffect(() => {
+    let timerId = null;
+
+    const cartSaveHandler = async (items) => {
+      cartSave({
+        url: 'https://react-http-4bdc6-default-rtdb.firebaseio.com/cart.json',
+        method: 'PATCH',
+        body: { cart: items },
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }, () => { /* console.log('Cart saved to server DB') */ });
+    };
+
+    const isChanged = isCartChanged && !isCartLoading;
+    if (isChanged) { timerId = setTimeout(() => { cartSaveHandler(cartCtx.items) }, 2000) }
+    setIsCartChanged(true);
+
+    return () => { clearTimeout(timerId) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartCtx.items])
 
 
   const mealsList = loadedMeals.map((meal) => (
