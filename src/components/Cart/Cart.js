@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useState } from 'react';
 
 import Modal from '../UI/Modal';
 import CartItem from './CartItem';
@@ -8,12 +8,9 @@ import useHttp from '../../hooks/use-http';
 import Checkout from './Checkout';
 
 const Cart = (props) => {
-  const [isCheckout, setIsCheckout] = useState(false)
-  const [isOrderSent, setIsOrderSent] = useState(false)
-  const { sendRequest: cartSave } = useHttp();
+  const [isCheckout, setIsCheckout] = useState(false);
+  const [isOrderSent, setIsOrderSent] = useState(false);
   const { sendRequest: orderSave } = useHttp();
-
-
   const cartCtx = useContext(CartContext);
 
   const totalAmount = `$${Math.abs(cartCtx.totalAmount.toFixed(2))}`;
@@ -27,17 +24,6 @@ const Cart = (props) => {
     cartCtx.addItem(item);
   };
 
-  const cartSaveHandler = useCallback(async (items) => {
-    cartSave({
-      url: 'https://react-http-4bdc6-default-rtdb.firebaseio.com/cart.json',
-      method: 'PATCH',
-      body: { cart: items },
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    }, () => { console.log('Cart saved to server DB') });
-  }, [cartSave]);
-
   const orderSaveHandler = useCallback(async (order) => {
     orderSave({
       url: 'https://react-http-4bdc6-default-rtdb.firebaseio.com/order.json',
@@ -49,25 +35,18 @@ const Cart = (props) => {
     }, (data) => {
       setIsOrderSent(true);
       cartCtx.clearCart();
-      hideOrderFormHandler();
-      console.log('Order sent');
+      hideCheckoutFormHandler();
+      // console.log('Order sent');
     });
   }, [orderSave, cartCtx]);
 
-  const showOrderFormHandler = () => {
+  const showCheckoutFormHandler = () => {
     setIsCheckout(true);
   }
 
-  const hideOrderFormHandler = () => {
+  const hideCheckoutFormHandler = () => {
     setIsCheckout(false);
   }
-
-  useEffect(() => {
-    const timerId = setTimeout(() => { cartSaveHandler(cartCtx.items) }, 2000);
-    return () => {
-      clearTimeout(timerId);
-    }
-  }, [cartCtx.items, cartSaveHandler])
 
   const cartItems = (
     <ul className={classes['cart-items']}>
@@ -96,11 +75,11 @@ const Cart = (props) => {
           </>
         }
       </div>
-      {isCheckout && <Checkout items={cartCtx.items} onOrderSend={orderSaveHandler} onCancel={hideOrderFormHandler} />}
+      {isCheckout && <Checkout items={cartCtx.items} onOrderSend={orderSaveHandler} onCancel={hideCheckoutFormHandler} />}
       {!isCheckout &&
         <div className={classes.actions}>
           <button className={classes['button--alt']} onClick={props.onClose}>Close</button>
-          {hasItems && <button className={classes.button} onClick={showOrderFormHandler}>Order</button>}
+          {hasItems && <button className={classes.button} onClick={showCheckoutFormHandler}>Order</button>}
         </div>}
     </Modal>
   );
